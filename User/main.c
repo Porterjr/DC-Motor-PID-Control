@@ -12,13 +12,27 @@ int main(void)
 	Encoder_Init();
     Serial_Init();
 	
-	Serial_Printf("Encoder Test Start\r\n");
+	Serial_Printf("Motor+Encoder Test\r\n");
+	
+	int16_t lastCount = 0;
 	
 	while (1)
 	{
-		int16_t count = Encoder_GetCount();
-        Serial_Printf("Count: %d\r\n", count);
-        Delay_ms(200);
+		Motor_SetSpeed(30);        // 低速正转，30%占空比
+        Delay_ms(1000);
+        
+        int16_t currentCount = Encoder_GetCount();
+        int16_t delta = currentCount - lastCount;
+        
+        Serial_Printf("Delta: %d\r\n", delta);
+        
+        lastCount = currentCount;
+        
+        if(currentCount > 60000 || currentCount < -60000)
+        {
+            TIM_SetCounter(TIM3, 0);
+            lastCount = 0;
+		}
 	}
 	
 }
@@ -49,4 +63,3 @@ int main(void)
 //        
 //        Motor_SetSpeed(0);     // 停止
 //        Delay_ms(2000);
-
