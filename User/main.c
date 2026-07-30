@@ -5,6 +5,7 @@
 #include "Encoder.h"
 #include "Serial.h"
 #include "Key.h"
+#include "PID.h"
 
 int main(void)
 {
@@ -19,29 +20,33 @@ int main(void)
     OLED_ShowString(3, 1, "PWM:");
     OLED_ShowString(4, 1, "Delta:");
 	
-	int16_t TargetSpeed = 0;
+	PID_TypeDef MotorPID;
+	PID_Init(&MotorPID, 3.0f, 0.3f, 0.0f);
+	MotorPID.Target = 0;
+	
 	int16_t lastCount = 0;
+	int16_t TargetRPM = 20;
 	
 	while (1)
 	{
-		 uint8_t key = Key_GetNum();
+		uint8_t key = Key_GetNum();
         
         if (key == 1)
         {
-            TargetSpeed += 20;
-            if (TargetSpeed > 100) TargetSpeed = 100;
+            TargetRPM += 10;
+            if (TargetRPM > 100) TargetRPM = 100;
         }
         else if (key == 2)
         {
-            TargetSpeed -= 20;
-            if (TargetSpeed < -100) TargetSpeed = -100;
+            TargetRPM -= 10;
+            if (TargetRPM < -100) TargetRPM = -100;
         }
         else if (key == 3)
         {
-            TargetSpeed = 0;
+            TargetRPM = 0;
         }
         
-        Motor_SetSpeed(TargetSpeed);
+        MotorPID.Target = (float)TargetRPM;
         Delay_ms(100);
         
         int16_t currentCount = Encoder_GetCount();
@@ -50,19 +55,23 @@ int main(void)
         
         int16_t ActualRPM = delta * 600 / 19240;
         
-        OLED_ShowSignedNum(1, 9, TargetSpeed, 3);
-        OLED_ShowSignedNum(2, 9, ActualRPM, 3);
-        OLED_ShowSignedNum(3, 9, TargetSpeed, 3);
-        OLED_ShowSignedNum(4, 9, delta, 4);
+        float pwmOutput = PID_Update(&MotorPID, (float)ActualRPM);
+        Motor_SetSpeed((int16_t)pwmOutput);
         
-        Serial_Printf("Tar:%d Act:%d D:%d\r\n", TargetSpeed, ActualRPM, delta);
+        OLED_ShowSignedNum(1, 9, TargetRPM, 3);
+        OLED_ShowSignedNum(2, 9, ActualRPM, 3);
+        OLED_ShowSignedNum(3, 9, (int16_t)pwmOutput, 3);
+        OLED_ShowSignedNum(4, 9, (int16_t)(MotorPID.Target - ActualRPM), 3);
+        
+        Serial_Printf("Tar:%d Act:%d PWM:%d Err:%.1f\r\n", 
+                      TargetRPM, ActualRPM, (int16_t)pwmOutput, MotorPID.Error);
         
         if(currentCount > 30000 || currentCount < -30000)
         {
             TIM_SetCounter(TIM3, 0);
             lastCount = 0;
         }
-	}
+    }
 }
 
 //		Motor_SetSpeed(50);
