@@ -18,14 +18,13 @@ int main(void)
 	OLED_ShowString(1, 1, "Target:");
     OLED_ShowString(2, 1, "Actual:");
     OLED_ShowString(3, 1, "PWM:");
-    OLED_ShowString(4, 1, "Delta:");
+    OLED_ShowString(4, 1, "Err:");
 	
 	PID_TypeDef MotorPID;
 	PID_Init(&MotorPID, 3.0f, 0.3f, 0.0f);
-	MotorPID.Target = 0;
 	
 	int16_t lastCount = 0;
-	int16_t TargetRPM = 20;
+	int16_t TargetRPM = 0;
 	
 	while (1)
 	{
@@ -33,13 +32,13 @@ int main(void)
         
         if (key == 1)
         {
-            TargetRPM += 10;
-            if (TargetRPM > 100) TargetRPM = 100;
+            TargetRPM += 5;
+			if (TargetRPM > 25) TargetRPM = 25;
         }
         else if (key == 2)
         {
-            TargetRPM -= 10;
-            if (TargetRPM < -100) TargetRPM = -100;
+            TargetRPM -= 5;
+			if (TargetRPM < -25) TargetRPM = -25;
         }
         else if (key == 3)
         {
